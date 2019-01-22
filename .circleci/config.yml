@@ -58,11 +58,12 @@ orbs:
                     echo "Specified environment variable << parameters.supermarket_key_variable >> is empty, can't create Supermarket key"
                     exit 1
                 fi
-                echo $<< parameters.supermarket_key_variable >> > /tmp/supermarket.key
+                echo $<< parameters.supermarket_key_variable >> | base64 -d > /tmp/supermarket.key
                 chmod 400 /tmp/supermarket.key
           - run:
               name: Cookbook share
               command: |
+                cat /tmp/supermarket.key
                 knife supermarket share '<< parameters.cookbook >>' '<< parameters.category >>' \
                   --cookbook-path '<< parameters.location >>' \
                   --supermarket-site '<< parameters.supermarket_url >>' \
