@@ -1,0 +1,89 @@
+version: '2.1'
+orbs:
+  chef:
+    description: Orb providing support for Chef operations.
+    commands:
+      setup-cdk:
+        description: Installs Chef Development Kit
+        parameters:
+          version:
+            type: string
+            default: 3.6.57
+        steps:
+          - run:
+              name: Chef Development Kit installation
+              command: |
+                whoami
+                if ! sudo apt-get install curl -y; then
+                  sudo apt-get update -y
+                  sudo apt-get install curl -y
+                fi
+                curl https://packages.chef.io/files/stable/chefdk/<< parameters.version >>/ubuntu/18.04/chefdk_<< parameters.version >>-1_amd64.deb -o /tmp/cdk.deb
+                sudo dpkg -i /tmp/cdk.deb
+                rm /tmp/cdk.deb
+
+      setup:
+        description: Installs packages required for work
+        parameters:
+          cdk_version:
+            type: string
+            default: 3.6.57
+        steps:
+          - setup-cdk:
+              version: << parameters.cdk_version >>
+      share:
+        description: Shares cookbook in target supermarket
+        parameters:
+          cookbook:
+            type: string
+          location:
+            type: string
+            default: '..'
+          category:
+            type: string
+            default: Other
+          supermarket_url:
+            type: string
+            default: https://supermarket.chef.io
+          supermarket_key_variable:
+            type: string
+            default: SUPERMARKET_KEY
+          supermarket_user:
+            type: string
+        steps:
+          - run:
+              name: Access key setup
+              command: |
+                if [[ -z "$<< parameters.supermarket_key_variable >>" ]]; then
+                    echo "Specified environment variable << parameters.supermarket_key_variable >> is empty, can't create Supermarket key"
+                    exit 1
+                fi
+                echo $<< parameters.supermarket_key_variable >> > /tmp/supermarket.key
+                chmod 400 /tmp/supermarket.key
+          - run:
+              name: Cookbook share
+              command: |
+                [[ ! -z '<< prameters.location >>' ]] && cd '<< parameters.location >>'
+                knife supermarket share '<< parameters.cookbook >>' '<< parameters.category >>' \
+                  --supermarket-site '<< params.supermarket_url >>' \
+                  --user '<< parameters.supermarket_user >>' \
+                  --key /tmp/supermarket.key
+          - run:
+              name: Access key cleanup
+              command: rm /tmp/supermarket.key
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby
+    steps:
+      - checkout
+      - chef/setup
+      - chef/share:
+          cookbook: ayte-wastepaper
+          supermarket_user: ayte
+workflows:
+  version: 2
+  default:
+    jobs:
+      - build:
+          context: supermarket.chef.io
