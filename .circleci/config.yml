@@ -63,9 +63,9 @@ orbs:
           - run:
               name: Cookbook share
               command: |
-                [[ ! -z '<< prameters.location >>' ]] && cd '<< parameters.location >>'
                 knife supermarket share '<< parameters.cookbook >>' '<< parameters.category >>' \
-                  --supermarket-site '<< params.supermarket_url >>' \
+                  --cookbook-path '<< parameters.location >>' \
+                  --supermarket-site '<< parameters.supermarket_url >>' \
                   --user '<< parameters.supermarket_user >>' \
                   --key /tmp/supermarket.key
           - run:
